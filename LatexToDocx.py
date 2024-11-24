@@ -1,6 +1,8 @@
 from LatexParser import LatexParser
 from DocFormatter import DocFormatter
 from FigureParser import FigureParser
+#from MathParser import MathParser
+import re
 
 class LatexToDocx:
     def __init__(self, latex_code):
@@ -16,6 +18,7 @@ class LatexToDocx:
         # Step 2: Parse formatting metadata
         formatting = self.parser.parse_formatting()
         figureNumber = 0
+        captionBuddy = False
         # Step 3: Add content to the Word document
         for line in plain_text.split('\n'):
             if not line.strip():
@@ -40,12 +43,33 @@ class LatexToDocx:
                     self.formatter.add_bulleted_line(line)
                 elif line.strip().startswith('< g r'):
                     print('Graphic Found in plain text')
-                    figures = self.figureparse.parse_figures(self.latex_code, plain_text)
+                    figures = self.figureparse.parse_figures(self.latex_code, plain_text)[0]
+                    captions = self.figureparse.parse_figures(self.latex_code, plain_text)[1]
+                    if captions[figureNumber] != '':
+                        captionBuddy = True
                     self.formatter.add_figure(figures[figureNumber])
                     figureNumber = figureNumber + 1
-                    self.formatter.add_paragraph('Graphic Goes Here!')
+                elif captionBuddy:
+                    self.formatter.add_caption(captions[figureNumber], figureNumber)
+                    captionBuddy = False
                 else:
-                    self.formatter.add_paragraph(line)
+                    math_pattern = re.compile(r'\$(.*?)\$')
+                    mathcheck = math_pattern.search(line)
+                    if mathcheck:
+                        math_parts = []
+                        last_end = 0
+                        for match in math_pattern.finditer(line):
+                            text_before = line[last_end:match.start()]
+                            math_text = match.group(1)
+                            math_parts.append((text_before, math_text))
+                            last_end = match.end()
+                        text_after = line[last_end:]
+                        math_parts.append((text_after, None))
+                        self.formatter.add_math_paragraph(math_parts)
+                        #math_text = self.MathParser.parse_math(line)
+                        #self.formatter.add_math_paragraph(math_text)
+                    else:
+                        self.formatter.add_paragraph(line)
 
     def save(self, filename):
         """Saves the generated Word document."""
