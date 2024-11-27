@@ -18,7 +18,8 @@ class LatexParser:
         section_pattern = re.compile(r'\\section{(.*?)}')
         subsection_pattern = re.compile(r'\\subsection{(.*?)}')
         bold_pattern = re.compile(r'\\textbf{(.*?)}')
-        
+        align_pattern = re.compile(r'\\begin{align}(.*?)\\end{align}', re.DOTALL)
+        align_pattern2 = re.compile(r'\\begin{align\*}(.*?)\\end{align\*}', re.DOTALL)
 
         # Extract formatting metadata
         for match in section_pattern.finditer(self.latex_code):
@@ -33,5 +34,13 @@ class LatexParser:
             line_start = self.latex_code.rfind('\n', 0, match.start())
             if not '%' in self.latex_code[line_start:match.start()+1]:
                 self.formatting.append({'type': 'bold', 'text': match.group(1)})
+        for match in align_pattern.finditer(self.latex_code):
+            line_start = self.latex_code.rfind('\n', 0, match.start())
+            if not '%' in self.latex_code[line_start:match.start()+1]:
+                self.formatting.append({'type': 'align', 'text': match.group(1)})
+        for match in align_pattern2.finditer(self.latex_code):
+            line_start = self.latex_code.rfind('\n', 0, match.start())
+            if not '%' in self.latex_code[line_start:match.start()+1]:
+                self.formatting.append({'type': 'align', 'text': match.group(1)})
 
         return self.formatting
